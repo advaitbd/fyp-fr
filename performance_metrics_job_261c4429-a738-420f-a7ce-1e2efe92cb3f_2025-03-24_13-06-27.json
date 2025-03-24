@@ -1,0 +1,83 @@
+{
+  "run_info": {
+    "timestamp": "2025-03-24_13-04-20",
+    "config": {
+      "analyzer_model": "claude-3-7-sonnet-latest",
+      "skeptic_model": "o3-mini",
+      "exploiter_model": "o3-mini",
+      "generator_model": "o3-mini",
+      "context_model": "o3-mini",
+      "all_models": null,
+      "use_rag": false,
+      "skip_poc": true,
+      "auto_run": true
+    },
+    "total_time_seconds": 126.86583709716797
+  },
+  "token_usage": {
+    "by_agent": {
+      "project_context": {
+        "prompt_tokens": 9198,
+        "completion_tokens": 1605,
+        "total_tokens": 10803,
+        "call_count": 1
+      },
+      "analyzer": {
+        "prompt_tokens": 41705,
+        "completion_tokens": 2576,
+        "total_tokens": 44281,
+        "call_count": 1
+      },
+      "skeptic": {
+        "prompt_tokens": 13161,
+        "completion_tokens": 4891,
+        "total_tokens": 18052,
+        "call_count": 1
+      },
+      "exploiter": {
+        "prompt_tokens": 2817,
+        "completion_tokens": 1696,
+        "total_tokens": 4513,
+        "call_count": 4
+      }
+    },
+    "by_model": {
+      "claude-3-7-sonnet-latest": {
+        "prompt_tokens": 50903,
+        "completion_tokens": 4181,
+        "total_tokens": 55084,
+        "call_count": 2
+      },
+      "o3-mini": {
+        "prompt_tokens": 15978,
+        "completion_tokens": 6587,
+        "total_tokens": 22565,
+        "call_count": 5
+      }
+    },
+    "total": {
+      "prompt_tokens": 66881,
+      "completion_tokens": 10768,
+      "total_tokens": 77649,
+      "call_count": 7
+    }
+  },
+  "code_metrics": {
+    "total_lines": 1,
+    "file_count": 1,
+    "files": [
+      "uploads/261c4429-a738-420f-a7ce-1e2efe92cb3f_contract.sol"
+    ]
+  },
+  "time_metrics": {
+    "total_seconds": 126.86583709716797,
+    "stage_times": {
+      "initialization": 0.0006670951843261719,
+      "static_analysis": 126.86512589454651
+    }
+  },
+  "derived_metrics": {
+    "tokens_per_second": 612.0560252996065,
+    "tokens_per_loc": 77649.0
+  }
+}

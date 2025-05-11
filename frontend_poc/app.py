@@ -160,9 +160,15 @@ def start_analysis():
     )
 
     # Get auto-run configuration
+    max_retries = data.get('max_retries', 3)
+    try:
+        max_retries = int(max_retries)
+    except (ValueError, TypeError):
+        max_retries = 3  # fallback to default if conversion fails
+
     auto_run_config = {
         'auto_run': data.get('auto_run', True),
-        'max_retries': data.get('max_retries', 3)
+        'max_retries': max_retries
     }
 
     # Get RAG configuration
@@ -507,6 +513,371 @@ def get_performance_metrics(job_id):
         'job_id': job_id,
         'performance_metrics': job['performance_metrics']
     })
+
+@app.route('/api/demo', methods=['POST'])
+def start_demo():
+    """
+    Starts a demo job that mimics the full multi-file flow with canned results.
+    """
+    job_id = str(uuid.uuid4())
+    demo_contracts_dir = "/Users/advait/Desktop/NTU/fyp-fr/examples/MultiContract"
+    jobs[job_id] = {
+        'status': 'fetching',
+        'contract_path': None,
+        'contracts_dir': demo_contracts_dir,
+        'filename': 'DemoProject',
+        'save_separate': True
+    }
+    threading.Thread(target=demo_thread, args=(job_id, demo_contracts_dir)).start()
+    return jsonify({'job_id': job_id, 'status': 'fetching', 'message': 'Demo started'})
+
+def demo_thread(job_id, contracts_dir):
+    import random
+    # Step 1: Mimic contract fetch
+    time.sleep(1)
+    jobs[job_id].update({
+        'status': 'fetched',
+        'contract_path': os.path.join(contracts_dir, 'MainContract.sol'),
+        'contracts_dir': contracts_dir,
+        'filename': 'MainContract.sol',
+        'save_separate': True
+    })
+    socketio.emit('contract_fetched', {'job_id': job_id, 'status': 'fetched'})
+
+    # Step 2: Mimic analysis start
+    time.sleep(1)
+    jobs[job_id]['status'] = 'analyzing'
+    socketio.emit('analysis_started', {'job_id': job_id})
+
+    # Step 3: Static Analyzer
+    time.sleep(1)
+    socketio.emit('agent_active', {
+        'job_id': job_id,
+        'agent': 'static_analyzer',
+        'status': 'Starting static analysis',
+        'detail': 'Parsing contract code and preparing for analysis'
+    })
+    time.sleep(1)
+    socketio.emit('agent_status', {
+        'job_id': job_id,
+        'agent': 'static_analyzer',
+        'status': 'Analysis complete',
+        'detail': 'Found 12 functions and 2 potential issues'
+    })
+    socketio.emit('agent_complete', {
+        'job_id': job_id,
+        'agent': 'static_analyzer',
+        'result': 'Analyzed 12 functions'
+    })
+
+    # Step 4: Project Context LLM (RAG)
+    time.sleep(1)
+    socketio.emit('agent_active', {
+        'job_id': job_id,
+        'agent': 'project_context_llm',
+        'status': 'Starting LLM-powered inter-contract analysis',
+        'detail': 'LLM-powered ProjectContextAgent will analyze 3 contracts for relationships'
+    })
+    time.sleep(1)
+    socketio.emit('agent_status', {
+        'job_id': job_id,
+        'agent': 'project_context_llm',
+        'status': 'LLM analyzing contract relationships',
+        'detail': 'Autonomously exploring contracts in MultiContract'
+    })
+    # Emit fake RAG/project context insights
+    socketio.emit('project_context_insights', {
+        'job_id': job_id,
+        'details': {
+            'insights': [
+                'Contract A calls Contract B in fallback.',
+                'Contract C manages access control for A and B.'
+            ],
+            'dependencies': [
+                'A depends on B',
+                'B depends on C'
+            ],
+            'vulnerabilities': [
+                'Potential reentrancy between A and B',
+                'Unprotected admin function in C'
+            ],
+            'recommendations': [
+                'Add reentrancy guard to A',
+                'Restrict admin in C'
+            ],
+            'important_functions': [
+                'A.fallback()',
+                'C.setAdmin()'
+            ],
+            'contract_files': ['A.sol', 'B.sol', 'C.sol'],
+            'stats': {
+                'total_contracts': 3,
+                'total_relationships': 2,
+                'total_vulnerabilities': 2,
+                'total_recommendations': 2
+            }
+        }
+    })
+    socketio.emit('agent_complete', {
+        'job_id': job_id,
+        'agent': 'project_context_llm',
+        'result': 'Analyzed 3 contracts. Found: 2 insights, 2 dependencies, 2 potential vulnerabilities, 2 recommendations'
+    })
+
+    # Step 5: Analyzer (with RAG details)
+    time.sleep(1)
+    socketio.emit('agent_active', {
+        'job_id': job_id,
+        'agent': 'analyzer',
+        'status': 'Initializing vulnerability analysis',
+        'detail': 'Loading contract code and preparing for analysis...'
+    })
+    time.sleep(1)
+    socketio.emit('agent_status', {
+        'job_id': job_id,
+        'agent': 'analyzer',
+        'status': 'Analyzing contract code',
+        'detail': 'Searching for potential vulnerabilities. Using RAG: True'
+    })
+    # Emit fake RAG details
+    socketio.emit('rag_details', {
+        'job_id': job_id,
+        'details': [
+            {
+                'filename': 'known_vulnerabilities/reentrancy/Example.sol',
+                'lines_range': '10-30',
+                'vuln_categories': ['reentrancy'],
+                'content_preview': 'function withdraw() external { ... } // classic reentrancy'
+            },
+            {
+                'filename': 'known_vulnerabilities/access_control/Admin.sol',
+                'lines_range': '5-20',
+                'vuln_categories': ['access_control'],
+                'content_preview': 'function setAdmin(address) public { ... } // missing onlyOwner'
+            }
+        ]
+    })
+    time.sleep(1)
+    socketio.emit('agent_status', {
+        'job_id': job_id,
+        'agent': 'analyzer',
+        'status': 'Analysis complete',
+        'detail': 'Found 2 potential vulnerabilities to investigate'
+    })
+    socketio.emit('agent_complete', {
+        'job_id': job_id,
+        'agent': 'analyzer',
+        'result': 'Found 2 potential vulnerabilities'
+    })
+
+    # Step 6: Skeptic
+    time.sleep(1)
+    socketio.emit('agent_active', {
+        'job_id': job_id,
+        'agent': 'skeptic',
+        'status': 'Initializing validity check',
+        'detail': 'Preparing to verify the reported vulnerabilities...'
+    })
+    time.sleep(1)
+    socketio.emit('agent_status', {
+        'job_id': job_id,
+        'agent': 'skeptic',
+        'status': 'Validating findings',
+        'detail': 'Checking validity of 2 potential vulnerabilities'
+    })
+    time.sleep(1)
+    socketio.emit('agent_status', {
+        'job_id': job_id,
+        'agent': 'skeptic',
+        'status': 'Validation complete',
+        'detail': 'Found 2 high-confidence vulnerabilities'
+    })
+    socketio.emit('agent_complete', {
+        'job_id': job_id,
+        'agent': 'skeptic',
+        'result': 'Confirmed 2 vulnerabilities with high confidence'
+    })
+
+    # Step 7: Exploiter (for each vuln)
+    for i, vuln in enumerate([
+        {'vulnerability_type': 'Reentrancy', 'skeptic_confidence': 0.95},
+        {'vulnerability_type': 'Access Control', 'skeptic_confidence': 0.92}
+    ]):
+        time.sleep(1)
+        socketio.emit('agent_active', {
+            'job_id': job_id,
+            'agent': 'exploiter',
+            'status': f'Creating exploit plan ({i+1}/2)',
+            'detail': f'Planning attack strategy for {vuln["vulnerability_type"]} vulnerability'
+        })
+        time.sleep(1)
+        socketio.emit('agent_status', {
+            'job_id': job_id,
+            'agent': 'exploiter',
+            'status': 'Plan created',
+            'detail': f'Exploit plan has 2 setup, 2 execution, and 1 validation steps'
+        })
+        socketio.emit('agent_complete', {
+            'job_id': job_id,
+            'agent': 'exploiter',
+            'result': f'Created exploit plan for {vuln["vulnerability_type"]}'
+        })
+
+        # Step 8: Generator
+        time.sleep(1)
+        socketio.emit('agent_active', {
+            'job_id': job_id,
+            'agent': 'generator',
+            'status': f'Generating PoC ({i+1}/2)',
+            'detail': f'Creating Foundry test for {vuln["vulnerability_type"]} vulnerability'
+        })
+        time.sleep(1)
+        socketio.emit('agent_status', {
+            'job_id': job_id,
+            'agent': 'generator',
+            'status': 'Code generated',
+            'detail': f'Generated PoC file: PoC_{vuln["vulnerability_type"]}_{i+1}.t.sol'
+        })
+        socketio.emit('agent_complete', {
+            'job_id': job_id,
+            'agent': 'generator',
+            'result': f'Created PoC_{vuln["vulnerability_type"]}_{i+1}.t.sol'
+        })
+
+        # Step 9: Runner
+        time.sleep(1)
+        socketio.emit('agent_active', {
+            'job_id': job_id,
+            'agent': 'runner',
+            'status': f'Executing PoC ({i+1}/2)',
+            'detail': f'Running Foundry test for {vuln["vulnerability_type"]}'
+        })
+        time.sleep(1)
+        socketio.emit('agent_status', {
+            'job_id': job_id,
+            'agent': 'runner',
+            'status': 'Execution complete',
+            'detail': 'Test executed successfully on first attempt'
+        })
+        socketio.emit('agent_complete', {
+            'job_id': job_id,
+            'agent': 'runner',
+            'result': 'Success'
+        })
+
+    # Step 10: Analysis Complete
+    time.sleep(1)
+    jobs[job_id]['status'] = 'completed'
+    canned_results = {
+        'rechecked_vulnerabilities': [
+            {
+                'vulnerability_type': 'Reentrancy',
+                'skeptic_confidence': 0.95,
+                'affected_functions': ['withdraw'],
+                'reasoning': 'Function withdraw() allows reentrancy.',
+                'validity_reasoning': 'Confirmed by skeptic agent.',
+                'code_snippet': 'function withdraw() external { ... }'
+            },
+            {
+                'vulnerability_type': 'Access Control',
+                'skeptic_confidence': 0.92,
+                'affected_functions': ['setAdmin'],
+                'reasoning': 'setAdmin() is public and lacks onlyOwner.',
+                'validity_reasoning': 'Confirmed by skeptic agent.',
+                'code_snippet': 'function setAdmin(address) public { ... }'
+            }
+        ],
+        'generated_pocs': [
+            {
+                'vulnerability': {'vulnerability_type': 'Reentrancy'},
+                'exploit_plan': {
+                    'setup_steps': ['Deploy attacker contract', 'Fund attacker'],
+                    'execution_steps': ['Call withdraw()', 'Reenter withdraw()'],
+                    'validation_steps': ['Check attacker balance increased']
+                },
+                'poc_data': {
+                    'exploit_file': 'PoC_Reentrancy_1.t.sol',
+                    'execution_command': 'forge test -vv --match-path "./src/test/PoC_Reentrancy_1.t.sol"',
+                    'execution_results': {
+                        'success': True,
+                        'retries': 0,
+                        'error': '',
+                        'output': 'Test result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.23s'
+                    },
+                    'exploit_code': '// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.15;\ncontract PoC_Reentrancy { /* ... */ }'
+                }
+            },
+            {
+                'vulnerability': {'vulnerability_type': 'Access Control'},
+                'exploit_plan': {
+                    'setup_steps': ['Deploy contract', 'Identify admin function'],
+                    'execution_steps': ['Call setAdmin() as attacker', 'Change admin'],
+                    'validation_steps': ['Check admin changed']
+                },
+                'poc_data': {
+                    'exploit_file': 'PoC_Access_Control_2.t.sol',
+                    'execution_command': 'forge test -vv --match-path "./src/test/PoC_Access_Control_2.t.sol"',
+                    'execution_results': {
+                        'success': True,
+                        'retries': 0,
+                        'error': '',
+                        'output': 'Test result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.10s'
+                    },
+                    'exploit_code': '// SPDX-License-Identifier: UNLICENSED\npragma solidity ^0.8.15;\ncontract PoC_Access_Control { /* ... */ }'
+                }
+            }
+        ]
+    }
+    jobs[job_id]['results'] = canned_results
+    socketio.emit('analysis_complete', {
+        'job_id': job_id,
+        'status': 'completed',
+        'vulnerabilities_count': 2,
+        'pocs_count': 2,
+        'performance_metrics': {
+            'total_lines': 120,
+            'total_files': 3,
+            'stages': [
+                {'name': 'static_analysis', 'duration': 1.0},
+                {'name': 'project_context_agent', 'duration': 1.0},
+                {'name': 'analyzer_agent', 'duration': 1.0},
+                {'name': 'skeptic_agent', 'duration': 1.0},
+                {'name': 'exploiter_agent', 'duration': 2.0},
+                {'name': 'generator_agent', 'duration': 2.0},
+                {'name': 'exploit_runner', 'duration': 2.0},
+                {'name': 'results_reporting', 'duration': 1.0}
+            ]
+        }
+    })
+
+@app.route('/api/demo-local-multicontract', methods=['POST'])
+def start_demo_local_multicontract():
+    """
+    Starts a real analysis job using the local examples/MultiContract directory as the contracts_dir.
+    """
+    job_id = str(uuid.uuid4())
+    contracts_dir = "/Users/advait/Desktop/NTU/fyp-fr/examples/MultiContract"
+    # Use the first .sol file as the main contract_path for context
+    main_file = None
+    for fname in os.listdir(contracts_dir):
+        if fname.endswith('.sol'):
+            main_file = os.path.join(contracts_dir, fname)
+            break
+    if not main_file:
+        return jsonify({'error': 'No .sol files found in MultiContract directory'}), 400
+    jobs[job_id] = {
+        'status': 'fetched',
+        'contract_path': main_file,
+        'contracts_dir': contracts_dir,
+        'filename': os.path.basename(main_file),
+        'save_separate': True
+    }
+    # Start analysis in a separate thread
+    threading.Thread(
+        target=analyze_thread,
+        args=(job_id, main_file, ModelConfig(), {'auto_run': True, 'max_retries': 3}, True)
+    ).start()
+    return jsonify({'job_id': job_id, 'status': 'analyzing', 'message': 'Real local multi-file analysis started'})
 
 # Custom SocketIO event handlers to provide real-time updates
 @socketio.on('connect')

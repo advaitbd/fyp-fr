@@ -41,4 +41,21 @@ export const fetchContractResults = (jobId) => {
   return api.get(`/results/${jobId}`);
 };
 
+export const startDemoJob = () => {
+  return api.post("/demo");
+};
+
+export const startDemoRealJob = () => {
+  // Hardcoded address and network for MultiContract demo
+  return api.post("/fetch-contract", {
+    address: "0xMULTICONTRACTDEMOADDRESS", // Replace with actual address if needed
+    network: "ethereum", // Or the correct network
+    saveSeparate: true
+  });
+};
+
+export const startDemoLocalMultiContractJob = () => {
+  return api.post("/demo-local-multicontract");
+};
+
 export default api;

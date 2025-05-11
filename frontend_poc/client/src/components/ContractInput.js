@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { uploadContract, fetchContractByAddress } from "../services/api";
+import { uploadContract, fetchContractByAddress, startDemoLocalMultiContractJob } from "../services/api";
 
 const ContractInput = ({ onContractSubmit }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -9,6 +9,7 @@ const ContractInput = ({ onContractSubmit }) => {
   const [contractAddress, setContractAddress] = useState("");
   const [network, setNetwork] = useState("ethereum");
   const [saveSeparate, setSaveSeparate] = useState(true);
+  const [isLocalDemoStarting, setIsLocalDemoStarting] = useState(false);
   const fileInputRef = useRef(null);
   const dragAreaRef = useRef(null);
 
@@ -206,6 +207,32 @@ const ContractInput = ({ onContractSubmit }) => {
             <p className="mt-2 text-sm text-red-500">{fetchError}</p>
           )}
         </form>
+      </div>
+
+      {/* Demo Button */}
+      <div className="mt-8">
+        <button
+          type="button"
+          className="w-full py-2.5 px-5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          onClick={async () => {
+            setIsLocalDemoStarting(true);
+            try {
+              const response = await startDemoLocalMultiContractJob();
+              onContractSubmit({
+                id: response.data.job_id,
+                name: "Demo Local Multi-File Project",
+                status: response.data.status,
+              });
+            } catch (err) {
+              alert("Failed to start local demo. Please try again.");
+            } finally {
+              setIsLocalDemoStarting(false);
+            }
+          }}
+          disabled={isUploading || isFetching || isLocalDemoStarting}
+        >
+          {isLocalDemoStarting ? "Starting Local Demo..." : "Run Demo (Local Multi-File Directory)"}
+        </button>
       </div>
     </div>
   );
